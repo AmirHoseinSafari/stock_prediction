@@ -7,10 +7,10 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-batch_size = 1
+batch_size = 128
 time_steps = 20
 feautures = 5
-
+test_size = 0.2
 
 def data_preprocess(data):
     print("checking if any null values are present\n", data.isna().sum())
@@ -30,25 +30,28 @@ def make_time_series(train, label):
     train_sequential = []
     label_sequential = []
 
-    #TODO
-    if len(train) < ((len(train) // batch_size + 1) * batch_size):
-        train = train[0:((len(train) // batch_size ) * batch_size)]
-        label = label[0:((len(train) // batch_size ) * batch_size)]
+    print(len(train))
+
+    # if len(train) < ((len(train) // batch_size + 1) * batch_size):
+    #     train = train[0:((len(train) // batch_size) * batch_size)]
+    #     label = label[0:((len(train) // batch_size) * batch_size)]
         # tmp = np.mean(train, axis=0)
-        # print(tmp)
+
         # for j in range(0, (((len(train) // batch_size + 1) * batch_size) - len(train))):
             # train = np.append(train, [tmp], axis=0)
             # label = np.append(label, 3, axis=0)
 
-
-    for i in range(time_steps, len(train) - batch_size):
+    i = time_steps
+    while i < len(train) - batch_size:
         tmp_train = []
         tmp_test = []
         for j in range(0, batch_size):
             tmp_train.append(train[i + j - time_steps:i+j])
             tmp_test.append(label[i+j])
+        i = i + batch_size
         train_sequential.extend(tmp_train)
         label_sequential.extend(tmp_test)
+
     return np.array(train_sequential), np.array(label_sequential)
 
 
@@ -73,5 +76,10 @@ def run_model(data):
     train, label = data_preprocess(data)
     train_sequential, label_sequential = make_time_series(train, label)
     model = create_model()
-    X_train, X_test, y_train, y_test = train_test_split(train_sequential, label_sequential, test_size=0.2, shuffle=False)
-    model.fit(x=X_train, y=y_train, epochs=30, batch_size=batch_size, validation_data=(X_test, y_test))
+    X_train, X_test, y_train, y_test = train_test_split(train_sequential, label_sequential, test_size=test_size, shuffle=False)
+
+    if len(X_train) < ((len(X_train) // batch_size + 1) * batch_size):
+        X_train = X_train[0:((len(X_train) // batch_size) * batch_size)]
+        y_train = y_train[0:((len(y_train) // batch_size) * batch_size)]
+
+    model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=30, validation_data=(X_test, y_test), verbose=1)
