@@ -1,29 +1,18 @@
 from keras import Sequential
 from keras.layers import LSTM, Dropout, Dense
 from keras import optimizers
-from keras.utils import np_utils
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from sklearn.model_selection import train_test_split
+import pandas as pd
 
+from data_processing.process_for_model import data_preprocess
 
-batch_size = 128
+batch_size = 32
 time_steps = 20
-feautures = 5
+feautures = 330
 test_size = 0.2
 
-def data_preprocess(data):
-    print("checking if any null values are present\n", data.isna().sum())
-    data = data.drop(['Range', 'RangeP', 'zscore'], axis=1)
-    label = data[['z1cat']]
-    label = label['z1cat'] - 1
-    training_set = data.drop(['z1cat'], axis=1)
-
-    sc = MinMaxScaler(feature_range=(0, 100))
-    training_set_scaled = sc.fit_transform(training_set)
-    label = np_utils.to_categorical(label)
-    return training_set_scaled, label
-    # return training_set.to_numpy(), label.to_numpy()
 
 
 def make_time_series(train, label):
@@ -73,13 +62,21 @@ def create_model():
 
 
 def run_model(data):
-    train, label = data_preprocess(data)
+    train, label = data_preprocess(data, model='lstm')
     train_sequential, label_sequential = make_time_series(train, label)
     model = create_model()
     X_train, X_test, y_train, y_test = train_test_split(train_sequential, label_sequential, test_size=test_size, shuffle=False)
 
+    print(X_train.shape)
+    print(X_test.shape)
     if len(X_train) < ((len(X_train) // batch_size + 1) * batch_size):
         X_train = X_train[0:((len(X_train) // batch_size) * batch_size)]
         y_train = y_train[0:((len(y_train) // batch_size) * batch_size)]
+
+    if len(X_test) < ((len(X_test) // batch_size + 1) * batch_size):
+        X_test = X_test[0:((len(X_test) // batch_size) * batch_size)]
+        y_test = y_test[0:((len(y_test) // batch_size) * batch_size)]
+    print(X_train.shape)
+    print(X_test.shape)
 
     model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=30, validation_data=(X_test, y_test), verbose=1)
