@@ -10,9 +10,8 @@ from data_processing.process_for_model import data_preprocess
 
 batch_size = 32
 time_steps = 20
-feautures = 330
+feautures = 158
 test_size = 0.2
-
 
 
 def make_time_series(train, label):
@@ -40,7 +39,9 @@ def make_time_series(train, label):
         i = i + batch_size
         train_sequential.extend(tmp_train)
         label_sequential.extend(tmp_test)
-
+    # print(len(train_sequential))
+    # print(len(train_sequential[0]))
+    # print(len(train_sequential[0][0]))
     return np.array(train_sequential), np.array(label_sequential)
 
 
@@ -50,19 +51,27 @@ def create_model():
     lstm_model.add(LSTM(100, batch_input_shape=(batch_size, time_steps, feautures),
                         dropout=0.0, recurrent_dropout=0.0, stateful=True, return_sequences=True,
                         kernel_initializer='random_uniform'))
-    lstm_model.add(Dropout(0.1))
-    lstm_model.add(LSTM(60, dropout=0.0))
-    lstm_model.add(Dropout(0.1))
+    lstm_model.add(Dropout(0.2))
+    lstm_model.add(LSTM(60, dropout=0.1, return_sequences=True))
+    lstm_model.add(Dropout(0.2))
+    lstm_model.add(LSTM(60, dropout=0.1))
+    lstm_model.add(Dropout(0.2))
+    lstm_model.add(Dense(30, activation='relu'))
     lstm_model.add(Dense(20, activation='relu'))
-    lstm_model.add(Dense(3, activation='softmax'))
+    lstm_model.add(Dense(3, activation='sigmoid')) #TODO
     # optimizer = optimizers.RMSprop(learning_rate=0.1)
     # optimizer = optimizers.SGD(lr=0.000001, decay=1e-6, momentum=0.9, nesterov=True)
-    lstm_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    from keras.optimizers import SGD, adam
+    opt = SGD(lr=0.0001)
+    lstm_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
     return lstm_model
-
+ # presicion,
 
 def run_model(data):
     train, label = data_preprocess(data, model='lstm')
+
+    train = train.values.tolist()
+
     train_sequential, label_sequential = make_time_series(train, label)
     model = create_model()
     X_train, X_test, y_train, y_test = train_test_split(train_sequential, label_sequential, test_size=test_size, shuffle=False)
@@ -79,4 +88,9 @@ def run_model(data):
     print(X_train.shape)
     print(X_test.shape)
 
-    model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=30, validation_data=(X_test, y_test), verbose=1)
+    model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=30, validation_data=(X_test, y_test), verbose=2)
+    # model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=30, verbose=2)
+
+    # yy = model.predict(X_test)
+    # for i in range(0, len(yy)):
+    #     print(yy[i], " ", y_test[i])

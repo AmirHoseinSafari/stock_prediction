@@ -22,7 +22,7 @@ def run_model(data):
     X_train, X_test, y_train, y_test = train_test_split(train, label, test_size=test_size, shuffle=False)
 
     # fit model no training data
-    model = XGBClassifier(max_depth=100, objective='multi:softmax', n_estimators=500,
+    model = XGBClassifier(max_depth=50, objective='multi:softmax', n_estimators=50,
                             num_classes=3)
     model.fit(X_train, y_train)
 
@@ -33,6 +33,12 @@ def run_model(data):
     accuracy = accuracy_score(y_test, predictions)
     print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
+    # make predictions for test data
+    y_pred = model.predict(X_train)
+    predictions = [round(value) for value in y_pred]
+    # evaluate predictions
+    accuracy = accuracy_score(y_train, predictions)
+    print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
     # TODO multi:softprob
     # gbt_model = xgb.XGBClassifier(max_depth=50, objective='multi:softmax', n_estimators=50,
